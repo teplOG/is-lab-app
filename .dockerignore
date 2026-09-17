@@ -1,0 +1,11 @@
+bin/
+obj/
+publish/
+.git/
+.gitignore
+.github/
+deploy/
+IsLabApp.Tests/
+*.sln
+Dockerfile
+.dockerignore
