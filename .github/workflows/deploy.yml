@@ -1,0 +1,43 @@
+name: CD Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, islab]
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+      - name: Deploy over SSH
+        run: |
+          ssh -i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=no \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" bash -s <<'EOFSSH'
+            set -e
+            cd /home/deployer/deploy/is-stack
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+          EOFSSH
+
+      - name: Verify deployment
+        run: |
+          sleep 30
+          echo "--- /health ---"; curl -sk https://127.0.0.1/health; echo
+          echo "--- /version ---"; curl -sk https://127.0.0.1/version; echo
+          echo "--- /db/ping ---"; curl -sk https://127.0.0.1/db/ping; echo
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f "$HOME/.ssh/deploy_key"

@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: isapp:lab8
+    image: ghcr.io/teplog/is-lab-app:${APP_TAG:-latest}
     container_name: is-app
     depends_on:
       - mssql
@@ -21,7 +21,6 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       ASPNETCORE_ENVIRONMENT: Production
       App__Name: IsLabApp
-      App__Version: ${APP_VERSION:-0.1.0-lab9}
       ConnectionStrings__Mssql: "Server=mssql,1433;Database=IsLabDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
     ports:
       - "127.0.0.1:5000:8080"
